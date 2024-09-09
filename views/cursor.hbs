@@ -1,0 +1,104 @@
+<div>
+  <div>
+    <a href="/">Back</a>
+  </div>
+  <div style="height: auto; overflow: auto;">
+    {{> table}}
+    <div id="loading" style="display: none;">Loading...</div>
+  </div>
+</div>
+
+<script nonce="{{cspNonce}}">
+  const loadingEl = document.getElementById('loading');
+
+  window.lastPageInfo = null;
+  window.loading = false;
+
+  window.throttle = (delay, callback) => {
+    let timeoutId = null;
+    let lastExec = 0;
+
+    return (...args) => {
+      let elapsed = Date.now() - lastExec;
+
+      function exec() {
+        lastExec = Date.now();
+        callback.apply(null, args);
+      }
+
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+
+      if (elapsed > delay) {
+        exec();
+      } else {
+        timeoutId = setTimeout(exec, delay - elapsed);
+      }
+    };
+  };
+
+  window.showLoading = () => {
+    window.loading = true;
+    loadingEl.style.display = '';
+  };
+
+  window.hideLoading = () => {
+    window.loading = false;
+    loadingEl.style.display = 'none';
+  };
+
+  window.hasNextPage = () => {
+    return window.lastPageInfo === null || window.lastPageInfo.hasNextPage;
+  };
+
+  window.scrollListener = () => {
+    if (window.loading) {
+      return;
+    }
+
+    const target = document.body;
+    const shouldLoad = target.scrollTop + target.clientHeight >= target.scrollHeight - 200;
+
+    if (shouldLoad && window.hasNextPage()) {
+      loadMore();
+    }
+  };
+
+  async function loadMore() {
+    window.hideError();
+    window.showLoading();
+
+    try {
+      const params = {};
+
+      if (window.lastPageInfo !== null) {
+        params.cursor = window.lastPageInfo.endCursor;
+      }
+
+      const data = await api('/api/cursor', params);
+
+      window.data.push(...data.items);
+      window.lastPageInfo = data.pageInfo;
+      window.update();
+
+      const shouldLoadMore = document.body.clientHeight < window.innerHeight;
+
+      if (shouldLoadMore && window.hasNextPage()) {
+        await loadMore();
+      }
+    } catch (err) {
+      window.showError(err.message);
+    }
+
+    window.hideLoading();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadMore();
+
+    const throttledScrollListener = throttle(150, window.scrollListener);
+    window.addEventListener('scroll', throttledScrollListener);
+  });
+</script>

@@ -1,0 +1,86 @@
+<div>
+  <div>
+    <a href="/">Back</a>
+  </div>
+  {{> table}}
+  <button id="load-more">Load more...</button>
+  <button id="load-all">Load all...</button>
+</div>
+
+<script nonce="{{cspNonce}}">
+  window.moreBtn = document.getElementById('load-more');
+  window.allBtn = document.getElementById('load-all');
+
+  async function loadMore() {
+    window.hideError();
+    window.moreBtn.disabled = true;
+    window.allBtn.disabled = true;
+
+    try {
+      const data = await api('/api/offset', {
+        offset: window.data.length,
+      });
+
+      window.data.push(...data.items);
+      window.update();
+
+      if (window.data.length === data.total) {
+        window.moreBtn.style.display = 'none';
+        window.allBtn.style.display = 'none';
+      }
+
+      window.scrollTo({
+        behavior: 'smooth',
+        top: document.body.scrollHeight,
+      });
+    } catch (err) {
+      window.showError(err.message);
+    }
+
+    window.moreBtn.disabled = false;
+    window.allBtn.disabled = false;
+  }
+
+  async function loadAll() {
+    window.hideError();
+    window.moreBtn.disabled = true;
+    window.allBtn.disabled = true;
+
+    let total = null;
+
+    try {
+      while (window.data.length !== total) {
+        const data = await api('/api/offset', {
+          offset: window.data.length,
+        });
+
+        if (total === null) {
+          total = data.total;
+        }
+
+        window.data.push(...data.items);
+      }
+
+      window.moreBtn.style.display = 'none';
+      window.allBtn.style.display = 'none';
+      window.update();
+
+      window.scrollTo({
+        behavior: 'smooth',
+        top: document.body.scrollHeight,
+      });
+    } catch (err) {
+      window.showError(err.message);
+    }
+
+    window.moreBtn.disabled = false;
+    window.allBtn.disabled = false;
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    window.moreBtn.addEventListener('click', loadMore);
+    window.allBtn.addEventListener('click', loadAll);
+
+    loadMore();
+  });
+</script>

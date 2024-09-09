@@ -1,0 +1,103 @@
+<style>
+  table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+  }
+</style>
+
+<div>
+  <form id="limit-form">
+    <label for="limit-input">Per Page</label>
+    <input
+      id="limit-input"
+      name="limit"
+      placeholder="Ex: 10, 50, 100"
+    >
+  </form>
+  <table id="table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Price</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <span style="color: red; display: none;" id="error"></span>
+</div>
+
+<script nonce="{{cspNonce}}">
+  window.tableEl = document.getElementById('table');
+  window.limitForm = document.getElementById('limit-form');
+  window.limitInput = document.getElementById('limit-input');
+  window.errorEl = document.getElementById('error');
+  window.limit = '';
+  window.data = [];
+
+  window.api = async (path, params) => {
+    const searchParams = new URLSearchParams(params);
+
+    if (window.limit !== '') {
+      searchParams.append('limit', window.limit);
+    }
+
+    const res = await fetch(path + '?' + searchParams.toString());
+    const data = await res.json();
+
+    if (!data.success) {
+      throw new Error(data.message);
+    }
+
+    return data.data;
+  };
+
+  window.update = () => {
+    const tbodyEl = tableEl.querySelector('tbody');
+
+    while (tbodyEl.firstChild !== null) {
+      tbodyEl.removeChild(tbodyEl.lastChild);
+    }
+
+    for (let i = 0; i < window.data.length; i++) {
+      const item = window.data[i];
+
+      const trEl = document.createElement('tr');
+      const td1El = document.createElement('td');
+      const td2El = document.createElement('td');
+      const td3El = document.createElement('td');
+      const td4El = document.createElement('td');
+
+      td1El.innerText = item.id;
+      td2El.innerText = item.name;
+      td3El.innerText = item.price;
+      td4El.innerText = item.description;
+
+      trEl.appendChild(td1El);
+      trEl.appendChild(td2El);
+      trEl.appendChild(td3El);
+      trEl.appendChild(td4El);
+      tbodyEl.appendChild(trEl);
+    }
+  };
+
+  window.hideError = () => {
+    window.errorEl.style.display = 'none';
+  };
+
+  window.showError = (message) => {
+    window.errorEl.style.display = '';
+    window.errorEl.innerText = message;
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    window.limitForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+    });
+
+    window.limitInput.addEventListener('change', (e) => {
+      window.limit = e.target.value;
+    });
+  });
+</script>
